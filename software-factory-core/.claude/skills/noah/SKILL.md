@@ -1,9 +1,12 @@
 ---
-name: factory
-description: Run the software factory. Use when the user types /factory <feature>, /factory next, /factory approve <job-id>, /factory rework <job-id> <note>, or /factory done <job-id>. The session that runs it becomes the orchestrator of the spec → build → review → approve loop.
+name: noah
+description: Run Noah, the software factory. Use when the user types /noah <feature>, /noah next, /noah approve <job-id>, /noah rework <job-id> <note>, or /noah done <job-id>. The session that runs it becomes the orchestrator of the spec → build → review → approve loop.
 ---
 
-# Factory
+# Noah
+
+Noah builds what the spec says and gets it through the flood of reviews, like
+his namesake built the ark.
 
 You are the orchestrator for one job. You run the loop below, spawn every agent,
 and are the only writer of your job's `job.json`. You never write code, specs,
@@ -23,7 +26,7 @@ feature → spec-writer → builder → [security, ux, ui, code] → WAIT FOR AL
 | Step         | Agent (`subagent_type`) | Writes                                      |
 | ------------ | ----------------------- | ------------------------------------------- |
 | spec         | `spec-writer`           | `spec.md`                                   |
-| build        | `builder`               | `build.md` + commits on `factory/<job-id>`  |
+| build        | `builder`               | `build.md` + commits on `noah/<job-id>`     |
 | review       | `reviewer-security`     | `round-N/review-security.md`                |
 |              | `reviewer-ux`           | `round-N/review-ux.md`                      |
 |              | `reviewer-ui`           | `round-N/review-ui.md`                      |
@@ -31,7 +34,7 @@ feature → spec-writer → builder → [security, ux, ui, code] → WAIT FOR AL
 | approve      | `approver`              | `decision.md`                               |
 
 `MAX_RESUMES = 2`: after round 1 the builder can be resumed at most twice, so a
-run has at most 3 review rounds. To change the factory, edit this file and the
+run has at most 3 review rounds. To change Noah, edit this file and the
 agent files in `.claude/agents/`.
 
 Every agent reads `AGENTS.md` (or `CLAUDE.md`) for the repo's setup, dev server,
@@ -41,13 +44,13 @@ validation commands and conventions. Nothing repo-specific lives in these files.
 
 Every job runs in its own git worktree on its own branch, so several jobs can run
 at once, one per Claude session. To run three features, open three sessions in
-this repo and start `/factory` in each. Your session orchestrates only the job it
+this repo and start `/noah` in each. Your session orchestrates only the job it
 started or was handed.
 
 - Your session stays in the main checkout. Agents work in the job's worktree.
   The main checkout is the user's, and it may be dirty or on another branch.
-  Nothing in the factory changes its branch or its tracked files.
-- Job state lives in `factory/jobs/<job-id>/` in the main checkout, never in a
+  Nothing Noah does changes its branch or its tracked files.
+- Job state lives in `noah/jobs/<job-id>/` in the main checkout, never in a
   worktree. Each job has its own `job.json`, so sessions never write the same
   file.
 - Each job gets its own dev server ports and agent-browser sessions (see
@@ -56,26 +59,26 @@ started or was handed.
 ## Files
 
 `<repo>` is the main checkout (`git rev-parse --show-toplevel` from your
-session) and `<name>` is its folder name. `factory/jobs/` is gitignored runtime
+session) and `<name>` is its folder name. `noah/jobs/` is gitignored runtime
 state that never lands in a commit.
 
 ```
-<repo>/factory/backlog.md                      queue for /factory next
-<repo>/factory/jobs/<job-id>/job.json          the job's state (you write it, the dashboard reads it)
-<repo>/factory/jobs/<job-id>/spec.md
-<repo>/factory/jobs/<job-id>/build.md
-<repo>/factory/jobs/<job-id>/rework-<k>.md     written by you, from /factory rework
-<repo>/factory/jobs/<job-id>/round-<N>/review-{security,ux,ui,code}.md
-<repo>/factory/jobs/<job-id>/decision.md
-<repo>/../<name>-factory/<job-id>/             the job's worktree, on factory/<job-id>
+<repo>/noah/backlog.md                      queue for /noah next
+<repo>/noah/jobs/<job-id>/job.json          the job's state (you write it, the dashboard reads it)
+<repo>/noah/jobs/<job-id>/spec.md
+<repo>/noah/jobs/<job-id>/build.md
+<repo>/noah/jobs/<job-id>/rework-<k>.md     written by you, from /noah rework
+<repo>/noah/jobs/<job-id>/round-<N>/review-{security,ux,ui,code}.md
+<repo>/noah/jobs/<job-id>/decision.md
+<repo>/../<name>-noah/<job-id>/             the job's worktree, on noah/<job-id>
 ```
 
 ### job.json
 
 ```json
 { "id": "003-rate-limiting", "feature": "Rate limit the signup form",
-  "branch": "factory/003-rate-limiting",
-  "worktree": "/Users/you/code/my-app-factory/003-rate-limiting",
+  "branch": "noah/003-rate-limiting",
+  "worktree": "/Users/you/code/my-app-noah/003-rate-limiting",
   "stage": "review", "round": 2,
   "reviews": { "security": "CHANGES", "ux": "PASS", "ui": "pending", "code": "PASS" } }
 ```
@@ -91,28 +94,28 @@ state that never lands in a commit.
 ### Prompts
 
 Every agent prompt starts with the job's absolute paths:
-`Job folder: <repo>/factory/jobs/<job-id>/. Worktree: <worktree>. Branch: factory/<job-id>.`
+`Job folder: <repo>/noah/jobs/<job-id>/. Worktree: <worktree>. Branch: noah/<job-id>.`
 Below, `<paths>` stands for that sentence.
 
 Agents that open pages also get a port. With `n` the job number (`003` → 3),
 the builder gets `5100 + 10n`, `reviewer-ux` gets `5101 + 10n` and `reviewer-ui`
 gets `5102 + 10n`, appended as ` Port: <port>.`
 
-## /factory <feature>
+## /noah <feature>
 
-1. **Create the job.** `mkdir -p factory/jobs`, then pick the next 3-digit number
-   after the highest numbered folder in `factory/jobs/` (`001` if there are
+1. **Create the job.** `mkdir -p noah/jobs`, then pick the next 3-digit number
+   after the highest numbered folder in `noah/jobs/` (`001` if there are
    none) and a 2–4 word kebab-case slug of the feature: `004-blog-reading-time`.
-   Claim it with `mkdir factory/jobs/<job-id>` (no `-p`). If that fails because
+   Claim it with `mkdir noah/jobs/<job-id>` (no `-p`). If that fails because
    another session took the number, pick the next number and try again.
-   The worktree path is `$(cd .. && pwd)/$(basename "$PWD")-factory/<job-id>`,
+   The worktree path is `$(cd .. && pwd)/$(basename "$PWD")-noah/<job-id>`,
    run from `<repo>`. Write `job.json` with that `worktree`, `stage: "spec"`,
    `round: 0` and all reviews `pending`.
 2. **Worktree.** Create the branch and its worktree from the latest
    `origin/master`:
    ```bash
    git fetch origin master
-   git worktree add --no-track -b factory/<job-id> <worktree> origin/master
+   git worktree add --no-track -b noah/<job-id> <worktree> origin/master
    ```
    Then, in the worktree, run the setup AGENTS.md gives for a fresh checkout
    (installing dependencies, for example). If any of it fails, stop and tell
@@ -134,7 +137,7 @@ Read the first line of `build.md`.
 ### Review round N
 
 1. Set `stage: "review"`, `round: N` and all four reviews to `pending`. Create
-   `factory/jobs/<job-id>/round-<N>/`.
+   `noah/jobs/<job-id>/round-<N>/`.
 2. Spawn all four reviewers **in one message**, so they run in parallel. Each
    gets the prompt `<paths> Review round N.`, plus its port for `reviewer-ux`
    and `reviewer-ui`.
@@ -145,15 +148,15 @@ Read the first line of `build.md`.
    Never resume the builder mid-round. If a reviewer finishes without writing
    its file, or writes a first line that isn't a verdict, stop and tell the user.
 4. Decide:
-   - **All PASS**: go to **Approve**.
-   - **Any CHANGES, resumes left**: set `stage: "build"`, then resume the same
-     builder with `SendMessage` to `builder-<job-id>`:
-     `Round N reviews are in factory/jobs/<job-id>/round-<N>/. Address every review with VERDICT: CHANGES, commit, and update build.md for round N+1.`
-     Wait for it to finish, then go to **Build check**.
-   - **Any CHANGES, no resumes left**: write `decision.md` yourself, reading
-     `ESCALATE`, then a blank line, then
-     `Review rounds exhausted. Outstanding CHANGES in round-<N>/ from: <reviewers>.`
-     Go to **Needs human**.
+    - **All PASS**: go to **Approve**.
+    - **Any CHANGES, resumes left**: set `stage: "build"`, then resume the same
+      builder with `SendMessage` to `builder-<job-id>`:
+      `Round N reviews are in noah/jobs/<job-id>/round-<N>/. Address every review with VERDICT: CHANGES, commit, and update build.md for round N+1.`
+      Wait for it to finish, then go to **Build check**.
+    - **Any CHANGES, no resumes left**: write `decision.md` yourself, reading
+      `ESCALATE`, then a blank line, then
+      `Review rounds exhausted. Outstanding CHANGES in round-<N>/ from: <reviewers>.`
+      Go to **Needs human**.
 
 ### Approve
 
@@ -165,18 +168,18 @@ When it finishes, read the first line of `decision.md`:
 
 ### Ready for PR
 
-Changes reach `master` only through a reviewed Bitbucket pull request, so the
-factory never merges and never pushes. Set `stage: "approved"` and tell the user
+Changes reach `master` only through a reviewed Bitbucket pull request, so Noah
+never merges and never pushes. Set `stage: "approved"` and tell the user
 the job is ready, with the branch, the worktree path, the first lines of
 `decision.md`, and the commands to publish it:
 
 ```bash
-git -C <worktree> push -u origin factory/<job-id>
+git -C <worktree> push -u origin noah/<job-id>
 ```
 
 The user renames the branch to the team convention (`feature/NDMS-<n>-<slug>`)
 if the PR needs one, and opens the PR themselves. Once it is merged they run
-`/factory done <job-id>`.
+`/noah done <job-id>`.
 
 ### Needs human
 
@@ -184,40 +187,43 @@ Set `stage: "needs-human"`. The branch and its worktree stay for the human to
 inspect. Tell the user which job is waiting, give the worktree path, and quote
 `decision.md` (or the BLOCKED reason from `build.md`).
 
-## /factory next
+## /noah next
 
-Read `factory/backlog.md` and take the first `- [ ]` item. Claim it with one
+Read `noah/backlog.md` and take the first `- [ ]` item. Claim it with one
 Edit that replaces its exact line with `- [x] <item> → claimed`. If the Edit
 fails because the line changed, another session claimed it: re-read the backlog
 and try the next `- [ ]` item. If none is left, say so and stop.
 
-Run `/factory <item>`, and once step 1 has given it a job id, replace `claimed`
+Run `/noah <item>`, and once step 1 has given it a job id, replace `claimed`
 on its backlog line with the job id.
 
-## /factory approve <job-id>
+## /noah approve <job-id>
 
 The job must be in `needs-human`. The human has read `decision.md` and accepts
 the branch as it is. Go to **Ready for PR** with that job id.
 
-## /factory done <job-id>
+## /noah done <job-id>
 
 The job must be in `approved` or `needs-human`. Clean it up:
 
 ```bash
 git worktree remove <worktree>
-git branch -D factory/<job-id>
+git branch -D <branch>
 ```
+
+Take `<worktree>` and `<branch>` from the job's `job.json`: jobs started before
+the rename to Noah still use the old `factory/<job-id>` branch and worktree.
 
 Use `-D` because the PR may have been squash-merged or merged under another
 branch name. Keep the job folder: it is the record the dashboard shows. If
 `git worktree remove` fails (uncommitted changes, for example), stop and tell
 the user what it printed.
 
-## /factory rework <job-id> <note>
+## /noah rework <job-id> <note>
 
 The job must be in `needs-human`.
 
-1. Write the note, verbatim, to `factory/jobs/<job-id>/rework-<k>.md`, where `k`
+1. Write the note, verbatim, to `noah/jobs/<job-id>/rework-<k>.md`, where `k`
    is the next unused number.
 2. Set `stage: "build"`.
 3. Spawn a fresh `builder` named `builder-<job-id>` with the prompt
